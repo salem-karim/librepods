@@ -6,6 +6,7 @@ coreKtx = "1.18.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
 composeBom = "2026.05.00"
+glance = "1.1.1"
 annotations = "26.1.0"
 navigationCompose = "2.9.8"
 constraintlayout = "2.2.1"
@@ -46,6 +47,8 @@ androidx-dynamicanimation = { group = "androidx.dynamicanimation", name = "dynam
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout"}
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
+androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
 aboutlibraries = { group = "com.mikepenz", name = "aboutlibraries", version.ref = "aboutLibraries" }
 aboutlibraries-compose-m3 = { group = "com.mikepenz", name = "aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "materialIconsCore" }
