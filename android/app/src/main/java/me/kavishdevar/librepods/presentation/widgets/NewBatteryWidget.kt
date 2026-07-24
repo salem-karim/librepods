@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -20,45 +21,28 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.cornerRadius
-import androidx.glance.appwidget.lazy.LazyColumn
-import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
+import androidx.glance.layout.Column
 import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import kotlin.jvm.java
 
-// How to add other generic Device Battery levels
-//val adapter = BluetoothAdapter.getDefaultAdapter() ?: return
-//val connectedDevices = adapter.bondedDevices.filter { device ->
-//    // isConnected() is also hidden but works the same way via reflection
-//    try {
-//        val m = BluetoothDevice::class.java.getMethod("isConnected")
-//        m.invoke(device) as Boolean
-//    } catch (e: Exception) {
-//        false
-//    }
-//}
-//connectedDevices.forEach { device ->
-//    val level = try {
-//        val m = BluetoothDevice::class.java.getMethod("getBatteryLevel")
-//        m.invoke(device) as Int
-//    } catch (e: Exception) {
-//        -1
-//    }
-//    Log.d("BatteryUpdate", "Device: ${device.name} (${device.address}) -> Battery: $level%")
-//}
 enum class DeviceType {
     PHONE,
     BLUETOOTH
 }
+
 data class DeviceBattery(
     val name: String,
     val percent: Int,
@@ -118,8 +102,8 @@ fun getConnectedDevicesBatteryInfo(context: Context): List<DeviceBattery> {
     return listOf(phoneBatteryInfo) + bluetoothBatteryInfo
 }
 
-val WidgetPadding get() = 12.dp
-
+val WidgetPadding get() = 10.dp
+val SpacerPadding get() = 2.dp
 class NewBatteryWidget : GlanceAppWidget() {
 
 
@@ -131,30 +115,50 @@ class NewBatteryWidget : GlanceAppWidget() {
         val connectedDevices = getConnectedDevicesBatteryInfo(context)
         provideContent {
             GlanceTheme {
-                LazyColumn(
-                    modifier = GlanceModifier
-                        .fillMaxSize()
-                        .background(GlanceTheme.colors.onSecondary)
-                        .padding(WidgetPadding)
-                ) {
-                    items(connectedDevices) { device ->
-                        DeviceRow(device)
-                    }
-                }
+                DeviceList(connectedDevices)
             }
         }
     }
 }
 
 @Composable
-fun DeviceRow(device: DeviceBattery) {
-    val widgetWidth = (LocalSize.current.width - WidgetPadding * 2)
+fun DeviceList(devices: List<DeviceBattery>) {
+
+    val deviceCount = devices.size
+
+    val totalSpacerHeight =
+    SpacerPadding * (deviceCount - 1).coerceAtLeast(0)
+
+    val availableWidth = (LocalSize.current.width - WidgetPadding * 2)
+    val rowHeight =
+        (LocalSize.current.height
+            - WidgetPadding * 2
+            - totalSpacerHeight) / deviceCount
+    Column(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .background(GlanceTheme.colors.onSecondary)
+            .padding(WidgetPadding)
+            .cornerRadius(24.dp)
+    ) {
+        devices.forEachIndexed { index, deviceBattery ->
+            DeviceRow(deviceBattery, availableWidth, rowHeight)
+            if (index != devices.lastIndex) {
+                Spacer(GlanceModifier.height(SpacerPadding))
+            }
+        }
+    }
+}
+
+@Composable
+fun DeviceRow(device: DeviceBattery, availableWidth: Dp, rowHeight: Dp) {
     val (fillColor, textColor, backgroundColor) = when (device.type) {
         DeviceType.PHONE -> Triple(
             GlanceTheme.colors.primaryContainer,
             GlanceTheme.colors.primary,
             GlanceTheme.colors.onPrimary
         )
+
         DeviceType.BLUETOOTH -> Triple(
             GlanceTheme.colors.tertiaryContainer,
             GlanceTheme.colors.tertiary,
@@ -164,18 +168,19 @@ fun DeviceRow(device: DeviceBattery) {
 
     Box( // Color is NOT onPrimary or onTertiary seems to be a composite or something
         modifier = GlanceModifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .height(rowHeight)
             .background(backgroundColor)
-            .cornerRadius(20.dp)
+            .cornerRadius(14.dp)
     ) {
         if (device.percent in 0..100) {
-            val fillWidth = (widgetWidth * (device.percent / 100f))
+            val fillWidth = (availableWidth * (device.percent / 100f))
             Box( // Color is PrimaryContainer on Phone Battery and TertiaryContainer on everything else
                 modifier = GlanceModifier
                     .fillMaxHeight()
                     .width(fillWidth)
                     .background(fillColor)
-                    .cornerRadius(20.dp)
+                    .cornerRadius(14.dp)
             ) {}
         }
 
