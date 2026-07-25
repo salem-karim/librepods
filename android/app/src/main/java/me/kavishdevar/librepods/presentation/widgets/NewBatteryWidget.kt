@@ -1,6 +1,7 @@
 package me.kavishdevar.librepods.presentation.widgets
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.provider.Settings
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -13,9 +14,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
@@ -34,8 +38,12 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
+import androidx.glance.text.FontFamily
+import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
+import me.kavishdevar.librepods.R
 import kotlin.jvm.java
 
 enum class DeviceType {
@@ -80,6 +88,7 @@ fun getConnectedDevicesBatteryInfo(context: Context): List<DeviceBattery> {
         }
     }
 
+    // should check if device is an AirPod and should be skipped
     val bluetoothBatteryInfo = connectedDevices.map { device ->
         val level = try {
             val m = BluetoothDevice::class.java.getMethod("getBatteryLevel")
@@ -100,6 +109,12 @@ fun getConnectedDevicesBatteryInfo(context: Context): List<DeviceBattery> {
     }
 
     return listOf(phoneBatteryInfo) + bluetoothBatteryInfo
+}
+
+val fontFamily = if (Build.MANUFACTURER.equals("Google", ignoreCase = true)) {
+    FontFamily("google-sans")
+} else {
+    FontFamily.SansSerif
 }
 
 val WidgetPadding get() = 10.dp
@@ -127,7 +142,7 @@ fun DeviceList(devices: List<DeviceBattery>) {
     val deviceCount = devices.size
 
     val totalSpacerHeight =
-    SpacerPadding * (deviceCount - 1).coerceAtLeast(0)
+        SpacerPadding * (deviceCount - 1).coerceAtLeast(0)
 
     val availableWidth = (LocalSize.current.width - WidgetPadding * 2)
     val rowHeight =
@@ -151,18 +166,19 @@ fun DeviceList(devices: List<DeviceBattery>) {
 }
 
 @Composable
+@SuppressLint("RestrictedApi")
 fun DeviceRow(device: DeviceBattery, availableWidth: Dp, rowHeight: Dp) {
     val (fillColor, textColor, backgroundColor) = when (device.type) {
         DeviceType.PHONE -> Triple(
             GlanceTheme.colors.primaryContainer,
             GlanceTheme.colors.primary,
-            GlanceTheme.colors.onPrimary
+            ColorProvider(android.R.color.system_accent1_900)
         )
 
         DeviceType.BLUETOOTH -> Triple(
             GlanceTheme.colors.tertiaryContainer,
             GlanceTheme.colors.tertiary,
-            GlanceTheme.colors.onTertiary
+            ColorProvider(android.R.color.system_accent3_900)
         )
     }
 
@@ -175,13 +191,14 @@ fun DeviceRow(device: DeviceBattery, availableWidth: Dp, rowHeight: Dp) {
     ) {
         if (device.percent in 0..100) {
             val fillWidth = (availableWidth * (device.percent / 100f))
-            Box( // Color is PrimaryContainer on Phone Battery and TertiaryContainer on everything else
+            Image(
+                provider = ImageProvider(R.drawable.battery_fill),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(fillColor),
                 modifier = GlanceModifier
                     .fillMaxHeight()
                     .width(fillWidth)
-                    .background(fillColor)
-                    .cornerRadius(14.dp)
-            ) {}
+            )
         }
 
         Row(
@@ -191,11 +208,11 @@ fun DeviceRow(device: DeviceBattery, availableWidth: Dp, rowHeight: Dp) {
             Text(
                 text = device.name,
                 modifier = GlanceModifier.defaultWeight(),
-                style = TextStyle(color = textColor)
+                style = TextStyle(color = textColor, fontFamily = fontFamily, fontWeight = FontWeight.Bold)
             )
             Text(
                 text = if (device.percent >= 0) "${device.percent} %" else "—",
-                style = TextStyle(color = textColor)
+                style = TextStyle(color = textColor, fontFamily = fontFamily, fontWeight = FontWeight.Bold)
             )
         }
     }
@@ -204,40 +221,3 @@ fun DeviceRow(device: DeviceBattery, availableWidth: Dp, rowHeight: Dp) {
 class BatteryWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget get() = NewBatteryWidget()
 }
-
-
-//@Composable
-//private fun DebugThemeColors(context: Context) {
-//    with(GlanceTheme.colors) {
-//        Log.d("BatteryWidget", "background=${background.getColor(context)}")
-//        Log.d("BatteryWidget", "onBackground=${onBackground.getColor(context)}")
-//        Log.d("BatteryWidget", "surface=${surface.getColor(context)}")
-//        Log.d("BatteryWidget", "onSurface=${onSurface.getColor(context)}")
-//        Log.d("BatteryWidget", "surfaceVariant=${surfaceVariant.getColor(context)}")
-//        Log.d("BatteryWidget", "onSurfaceVariant=${onSurfaceVariant.getColor(context)}")
-//        Log.d("BatteryWidget", "inverseSurface=${inverseSurface.getColor(context)}")
-//        Log.d("BatteryWidget", "inverseOnSurface=${inverseOnSurface.getColor(context)}")
-//        Log.d("BatteryWidget", "primary=${primary.getColor(context)}")
-//        Log.d("BatteryWidget", "onPrimary=${onPrimary.getColor(context)}")
-//        Log.d("BatteryWidget", "primaryContainer=${primaryContainer.getColor(context)}")
-//        Log.d("BatteryWidget", "onPrimaryContainer=${onPrimaryContainer.getColor(context)}")
-//        Log.d("BatteryWidget", "inversePrimary=${inversePrimary.getColor(context)}")
-//        Log.d("BatteryWidget", "secondary=${secondary.getColor(context)}")
-//        Log.d("BatteryWidget", "onSecondary=${onSecondary.getColor(context)}")
-//        Log.d("BatteryWidget", "secondaryContainer=${secondaryContainer.getColor(context)}")
-//        Log.d("BatteryWidget", "onSecondaryContainer=${onSecondaryContainer.getColor(context)}")
-//        Log.d("BatteryWidget", "tertiary=${tertiary.getColor(context)}")
-//        Log.d("BatteryWidget", "onTertiary=${onTertiary.getColor(context)}")
-//        Log.d("BatteryWidget", "tertiaryContainer=${tertiaryContainer.getColor(context)}")
-//        Log.d("BatteryWidget", "onTertiaryContainer=${onTertiaryContainer.getColor(context)}")
-//        Log.d("BatteryWidget", "error=${error.getColor(context)}")
-//        Log.d("BatteryWidget", "onError=${onError.getColor(context)}")
-//        Log.d("BatteryWidget", "errorContainer=${errorContainer.getColor(context)}")
-//        Log.d("BatteryWidget", "onErrorContainer=${onErrorContainer.getColor(context)}")
-//        Log.d("BatteryWidget", "widgetBackground=${widgetBackground.getColor(context)}")
-//        Log.d("BatteryWidget", "outline=${outline.getColor(context)}")
-//    }
-//
-//    Log.d("BatteryWidget", "uiMode=${context.resources.configuration.uiMode}")
-//}
-
