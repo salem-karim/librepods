@@ -6,6 +6,7 @@ import android.provider.Settings
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.content.res.Configuration
 import android.os.BatteryManager
 import android.os.Build
 import android.util.Log
@@ -20,6 +21,7 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
@@ -152,7 +154,7 @@ fun DeviceList(devices: List<DeviceBattery>) {
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(GlanceTheme.colors.onSecondary)
+            .background(GlanceTheme.colors.widgetBackground)
             .padding(WidgetPadding)
             .cornerRadius(24.dp)
     ) {
@@ -166,20 +168,37 @@ fun DeviceList(devices: List<DeviceBattery>) {
 }
 
 @Composable
+fun isSystemInDarkThemeGlance(): Boolean {
+    val context = LocalContext.current
+    val uiMode = context.resources.configuration.uiMode
+    return (uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+}
+
+@Composable
 @SuppressLint("RestrictedApi")
 fun DeviceRow(device: DeviceBattery, availableWidth: Dp, rowHeight: Dp) {
-    val (fillColor, textColor, backgroundColor) = when (device.type) {
-        DeviceType.PHONE -> Triple(
+    val (fillColor, textColor, backgroundColor) = when (device.type to isSystemInDarkThemeGlance()) {
+        DeviceType.PHONE to true -> Triple(
             GlanceTheme.colors.primaryContainer,
             GlanceTheme.colors.primary,
             ColorProvider(android.R.color.system_accent1_900)
         )
-
-        DeviceType.BLUETOOTH -> Triple(
+        DeviceType.PHONE to false -> Triple(
+            ColorProvider(android.R.color.system_accent1_300),
+            GlanceTheme.colors.onPrimaryContainer,
+            GlanceTheme.colors.primaryContainer
+        )
+        DeviceType.BLUETOOTH to true -> Triple(
             GlanceTheme.colors.tertiaryContainer,
             GlanceTheme.colors.tertiary,
             ColorProvider(android.R.color.system_accent3_900)
         )
+        DeviceType.BLUETOOTH to false -> Triple(
+            ColorProvider(android.R.color.system_accent3_300),
+            GlanceTheme.colors.onTertiaryContainer,
+            GlanceTheme.colors.tertiaryContainer
+        )
+        else -> error("Unhandled device type / theme combination")
     }
 
     Box( // Color is NOT onPrimary or onTertiary seems to be a composite or something
